@@ -20,7 +20,7 @@ struct Args {
     port: u16,
 
     /// File to output registries
-    #[clap(short, long, default_value = "registries.json")]
+    #[clap(short, long, default_value = "registries.nbt")]
     registries_file: String,
 
     /// File output for tags
@@ -123,9 +123,11 @@ async fn connect(args: Args) -> anyhow::Result<()> {
             packets::play::GameJoinS2c::ID => {
                 let game_join: packets::play::GameJoinS2c = packet.decode()?;
                 let mut file = open_file(&args.registries_file).await?;
-                let json = serde_json::to_vec(&game_join.registry_codec)?;
+                let mut write = Vec::new();
 
-                file.write_all(&json).await?;
+                valence_nbt::to_binary(&game_join.registry_codec, &mut write, "root")?;
+
+                file.write_all(&write).await?;
                 wrote_registries = true;
             }
             _ => {}
